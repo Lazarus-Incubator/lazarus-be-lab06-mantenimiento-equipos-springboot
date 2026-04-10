@@ -25,6 +25,12 @@ import pe.incubadora.backend.dto.equipo.EquipoLaboratorioResponse;
 import pe.incubadora.backend.entity.EstadoEquipo;
 import pe.incubadora.backend.service.EquipoLaboratorioService;
 
+/**
+ * Publica las operaciones HTTP para administrar equipos de laboratorio.
+ *
+ * <p>Desde esta capa se exponen búsquedas paginadas y operaciones CRUD sobre
+ * el inventario técnico de cada sede.</p>
+ */
 @RestController
 @RequestMapping("/api/v1/equipos")
 @SecurityRequirement(name = "bearerAuth")
@@ -33,6 +39,11 @@ public class EquipoLaboratorioController {
 
     private final EquipoLaboratorioService equipoService;
 
+    /**
+     * Lista equipos con filtros opcionales y paginación.
+     *
+     * @return página de equipos visibles para el usuario autenticado
+     */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES','SEDE')")
     public Page<EquipoLaboratorioResponse> findAll(@RequestParam(required = false) String search,
@@ -43,24 +54,48 @@ public class EquipoLaboratorioController {
         return equipoService.findAll(search, sedeId, estado, activo, pageable);
     }
 
+    /**
+     * Recupera el detalle de un equipo concreto.
+     *
+     * @param id identificador del equipo
+     * @return representación del equipo solicitada por la API
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES','SEDE')")
     public EquipoLaboratorioResponse findById(@PathVariable Long id) {
         return equipoService.findById(id);
     }
 
+    /**
+     * Registra un nuevo equipo dentro del catálogo de la organización.
+     *
+     * @param request datos funcionales y de ubicación del equipo
+     * @return recurso creado con su información consolidada
+     */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     public ResponseEntity<EquipoLaboratorioResponse> create(@Valid @RequestBody EquipoLaboratorioRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(equipoService.create(request));
     }
 
+    /**
+     * Actualiza los datos operativos de un equipo existente.
+     *
+     * @param id identificador del equipo a modificar
+     * @param request nuevo estado de la información editable
+     * @return equipo actualizado
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     public EquipoLaboratorioResponse update(@PathVariable Long id, @Valid @RequestBody EquipoLaboratorioRequest request) {
         return equipoService.update(id, request);
     }
 
+    /**
+     * Elimina un equipo del catálogo expuesto por la API.
+     *
+     * @param id identificador del equipo a eliminar
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     @ResponseStatus(HttpStatus.NO_CONTENT)

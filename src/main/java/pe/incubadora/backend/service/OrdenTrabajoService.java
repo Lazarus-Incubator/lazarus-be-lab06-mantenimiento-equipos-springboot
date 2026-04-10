@@ -36,6 +36,12 @@ import pe.incubadora.backend.repository.UserRepository;
 import pe.incubadora.backend.security.SecurityUtils;
 import pe.incubadora.backend.security.UserPrincipal;
 
+/**
+ * Administra el flujo tecnico de las ordenes de trabajo derivadas de incidencias.
+ *
+ * <p>Este servicio concentra la creacion, asignacion, ejecucion y cierre de ordenes,
+ * junto con las verificaciones de acceso por rol y el registro del consumo de repuestos.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class OrdenTrabajoService {
@@ -50,6 +56,19 @@ public class OrdenTrabajoService {
     private final SecurityUtils securityUtils;
     private final CodeGeneratorService codeGeneratorService;
 
+    /**
+     * Lista ordenes de trabajo visibles para el usuario autenticado.
+     *
+     * <p>Los filtros se combinan con restricciones por sede o tecnico segun el rol
+     * presente en el contexto de seguridad.</p>
+     *
+     * @param sedeId sede solicitada para la consulta
+     * @param incidenciaId incidencia origen de la orden
+     * @param estado estado operativo de la orden
+     * @param tecnicoId tecnico asignado
+     * @param pageable configuracion de paginacion
+     * @return pagina de ordenes con sus repuestos ya mapeados a DTO
+     */
     @Transactional(readOnly = true)
     public Page<OrdenTrabajoResponse> findAll(Long sedeId,
                                               Long incidenciaId,
@@ -91,12 +110,27 @@ public class OrdenTrabajoService {
                 .map(orden -> ordenTrabajoMapper.toResponse(orden, ordenTrabajoRepuestoRepository.findByOrdenTrabajoId(orden.getId())));
     }
 
+    /**
+     * Obtiene una orden puntual respetando las reglas de visibilidad del rol actual.
+     *
+     * @param id identificador de la orden
+     * @return orden con sus repuestos asociados
+     */
     @Transactional(readOnly = true)
     public OrdenTrabajoResponse findById(Long id) {
         OrdenTrabajo ordenTrabajo = securityUtils.hasAnyRole(Role.SEDE) ? getEntity(id) : getVisibleEntity(id);
         return ordenTrabajoMapper.toResponse(ordenTrabajo, ordenTrabajoRepuestoRepository.findByOrdenTrabajoId(id));
     }
 
+    /**
+     * Genera una orden de trabajo a partir de una incidencia existente.
+     *
+     * <p>Ademas de crear la orden, este flujo actualiza el estado de la incidencia para
+     * reflejar que ya ingreso a la etapa de atencion tecnica.</p>
+     *
+     * @param request datos iniciales de la orden
+     * @return orden recien creada
+     */
     @Transactional
     public OrdenTrabajoResponse create(OrdenTrabajoRequest request) {
         Incidencia incidencia = incidenciaService.getEntity(request.incidenciaId());
@@ -120,6 +154,13 @@ public class OrdenTrabajoService {
         return ordenTrabajoMapper.toResponse(ordenTrabajo, List.of());
     }
 
+    /**
+     * Actualiza una orden mientras permanezca en su etapa de preparacion.
+     *
+     * @param id identificador de la orden
+     * @param request datos editables de la orden
+     * @return orden actualizada
+     */
     @Transactional
     public OrdenTrabajoResponse update(Long id, OrdenTrabajoUpdateRequest request) {
         OrdenTrabajo ordenTrabajo = getVisibleEntity(id);
@@ -130,6 +171,11 @@ public class OrdenTrabajoService {
         return ordenTrabajoMapper.toResponse(ordenTrabajoRepository.save(ordenTrabajo), List.of());
     }
 
+    /**
+     * Elimina una orden en estado inicial y revierte la incidencia a la etapa previa.
+     *
+     * @param id identificador de la orden
+     */
     @Transactional
     public void delete(Long id) {
         OrdenTrabajo ordenTrabajo = getVisibleEntity(id);
@@ -141,6 +187,13 @@ public class OrdenTrabajoService {
         ordenTrabajoRepository.delete(ordenTrabajo);
     }
 
+    /**
+     * Asigna la orden a un tecnico activo.
+     *
+     * @param id identificador de la orden
+     * @param request tecnico que se desea asignar
+     * @return orden con la asignacion aplicada
+     */
     @Transactional
     public OrdenTrabajoResponse assign(Long id, OrdenTrabajoAssignRequest request) {
         OrdenTrabajo ordenTrabajo = getVisibleEntity(id);
@@ -160,6 +213,12 @@ public class OrdenTrabajoService {
         return ordenTrabajoMapper.toResponse(ordenTrabajoRepository.save(ordenTrabajo), List.of());
     }
 
+    /**
+     * Marca el inicio de la ejecucion tecnica de una orden asignada.
+     *
+     * @param id identificador de la orden
+     * @return orden en curso
+     */
     @Transactional
     public OrdenTrabajoResponse start(Long id) {
         OrdenTrabajo ordenTrabajo = getVisibleEntity(id);
@@ -172,6 +231,16 @@ public class OrdenTrabajoService {
         return ordenTrabajoMapper.toResponse(ordenTrabajoRepository.save(ordenTrabajo), List.of());
     }
 
+    /**
+     * Finaliza una orden registrando observaciones de cierre y consumo de repuestos.
+     *
+     * <p>Es uno de los flujos mas sensibles del sistema porque actualiza simultaneamente
+     * la orden, la incidencia asociada y el stock de los repuestos utilizados.</p>
+     *
+     * @param id identificador de la orden
+     * @param request observacion final y lista de repuestos consumidos
+     * @return orden finalizada con el detalle de repuestos asociados
+     */
     public OrdenTrabajoResponse finalizeOrder(Long id, OrdenTrabajoFinalizeRequest request) {
         OrdenTrabajo ordenTrabajo = getVisibleEntity(id);
         if (ordenTrabajo.getEstado() == EstadoOrdenTrabajo.CREADA || ordenTrabajo.getEstado() == EstadoOrdenTrabajo.ASIGNADA) {
@@ -209,12 +278,25 @@ public class OrdenTrabajoService {
         return ordenTrabajoMapper.toResponse(saved, ordenTrabajoRepuestoRepository.findByOrdenTrabajoId(saved.getId()));
     }
 
+    /**
+     * Recupera una orden sin aplicar reglas de visibilidad adicionales.
+     *
+     * @param id identificador de la orden
+     * @return entidad persistida
+     * @throws NotFoundException si la orden no existe
+     */
     @Transactional(readOnly = true)
     public OrdenTrabajo getEntity(Long id) {
         return ordenTrabajoRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Orden de trabajo no encontrada"));
     }
 
+    /**
+     * Recupera una orden y comprueba que el usuario autenticado pueda trabajar con ella.
+     *
+     * @param id identificador de la orden
+     * @return entidad visible para el rol actual
+     */
     @Transactional(readOnly = true)
     public OrdenTrabajo getVisibleEntity(Long id) {
         OrdenTrabajo ordenTrabajo = getEntity(id);

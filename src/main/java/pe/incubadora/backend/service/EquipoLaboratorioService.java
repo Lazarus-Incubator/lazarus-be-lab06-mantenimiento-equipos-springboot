@@ -20,6 +20,13 @@ import pe.incubadora.backend.mapper.EquipoLaboratorioMapper;
 import pe.incubadora.backend.repository.EquipoLaboratorioRepository;
 import pe.incubadora.backend.security.SecurityUtils;
 
+/**
+ * Gestiona el catalogo de equipos de laboratorio y las restricciones de visibilidad
+ * asociadas a la sede del usuario.
+ *
+ * <p>Ademas del CRUD, este servicio centraliza la validacion de acceso cuando un
+ * usuario de tipo {@code SEDE} intenta operar sobre equipos fuera de su alcance.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class EquipoLaboratorioService {
@@ -29,6 +36,16 @@ public class EquipoLaboratorioService {
     private final SedeService sedeService;
     private final SecurityUtils securityUtils;
 
+    /**
+     * Lista equipos aplicando filtros operativos y restricciones de acceso por sede.
+     *
+     * @param search texto libre usado sobre codigo patrimonial y datos descriptivos
+     * @param sedeId sede solicitada por el cliente; puede ajustarse segun el rol autenticado
+     * @param estado estado operativo del equipo
+     * @param activo indicador de vigencia logica
+     * @param pageable configuracion de paginacion y ordenamiento
+     * @return pagina de equipos visibles para el usuario actual
+     */
     @Transactional(readOnly = true)
     public Page<EquipoLaboratorioResponse> findAll(String search,
                                                    Long sedeId,
@@ -65,6 +82,13 @@ public class EquipoLaboratorioService {
         return equipoMapper.toResponse(getVisibleEntity(id));
     }
 
+    /**
+     * Registra un nuevo equipo y lo vincula a la sede indicada en el request.
+     *
+     * @param request datos enviados por la API para crear el equipo
+     * @return equipo persistido listo para exponerlo como DTO de respuesta
+     * @throws ConflictException si el codigo patrimonial ya esta en uso
+     */
     @Transactional
     public EquipoLaboratorioResponse create(EquipoLaboratorioRequest request) {
         if (equipoRepository.existsByCodigoPatrimonialIgnoreCase(request.codigoPatrimonial().trim())) {
@@ -78,6 +102,13 @@ public class EquipoLaboratorioService {
         return equipoMapper.toResponse(equipoRepository.save(equipo));
     }
 
+    /**
+     * Actualiza la informacion editable de un equipo respetando la visibilidad por sede.
+     *
+     * @param id identificador del equipo
+     * @param request nuevos datos del equipo
+     * @return representacion actualizada del equipo
+     */
     @Transactional
     public EquipoLaboratorioResponse update(Long id, EquipoLaboratorioRequest request) {
         EquipoLaboratorio equipo = getVisibleEntity(id);
@@ -97,6 +128,17 @@ public class EquipoLaboratorioService {
         equipoRepository.delete(getVisibleEntity(id));
     }
 
+    /**
+     * Recupera la entidad y valida que el usuario autenticado tenga acceso a su sede.
+     *
+     * <p>Este metodo se usa internamente cuando otras capas necesitan trabajar con la
+     * entidad JPA sin exponerla directamente por la API.</p>
+     *
+     * @param id identificador del equipo
+     * @return entidad del equipo con acceso validado
+     * @throws NotFoundException si el equipo no existe
+     * @throws ForbiddenException si la sede del equipo no es visible para el usuario actual
+     */
     @Transactional(readOnly = true)
     public EquipoLaboratorio getVisibleEntity(Long id) {
         EquipoLaboratorio equipo = equipoRepository.findById(id)

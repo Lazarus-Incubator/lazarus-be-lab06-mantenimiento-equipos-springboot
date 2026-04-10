@@ -18,6 +18,12 @@ import pe.incubadora.backend.mapper.SedeMapper;
 import pe.incubadora.backend.repository.SedeRepository;
 import pe.incubadora.backend.security.SecurityUtils;
 
+/**
+ * Gestiona el catalogo de sedes y las restricciones de acceso asociadas al rol {@code SEDE}.
+ *
+ * <p>Para usuarios corporativos expone el CRUD completo; para usuarios de sede limita la
+ * consulta a su propio registro.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class SedeService {
@@ -26,6 +32,14 @@ public class SedeService {
     private final SedeMapper sedeMapper;
     private final SecurityUtils securityUtils;
 
+    /**
+     * Lista sedes filtrando por datos basicos y respetando la visibilidad del usuario.
+     *
+     * @param search texto libre sobre codigo, nombre o ciudad
+     * @param activa estado logico de la sede
+     * @param pageable configuracion de paginacion
+     * @return pagina de sedes visibles
+     */
     @Transactional(readOnly = true)
     public Page<SedeResponse> findAll(String search, Boolean activa, Pageable pageable) {
         Specification<Sede> spec = (root, query, cb) -> cb.conjunction();
@@ -54,6 +68,12 @@ public class SedeService {
         return sedeMapper.toResponse(getVisibleEntity(id));
     }
 
+    /**
+     * Registra una nueva sede del laboratorio.
+     *
+     * @param request datos enviados por la API para crear la sede
+     * @return sede creada
+     */
     @Transactional
     public SedeResponse create(SedeRequest request) {
         if (sedeRepository.existsByCodigoIgnoreCase(request.codigo().trim())) {
@@ -64,6 +84,13 @@ public class SedeService {
         return sedeMapper.toResponse(sedeRepository.save(sede));
     }
 
+    /**
+     * Actualiza la informacion basica de una sede existente.
+     *
+     * @param id identificador de la sede
+     * @param request nuevos datos de la sede
+     * @return sede actualizada
+     */
     @Transactional
     public SedeResponse update(Long id, SedeRequest request) {
         Sede sede = getVisibleEntity(id);
@@ -81,6 +108,14 @@ public class SedeService {
         sedeRepository.delete(sede);
     }
 
+    /**
+     * Recupera una sede y valida que el usuario autenticado pueda acceder a ella.
+     *
+     * @param id identificador de la sede
+     * @return entidad JPA de la sede
+     * @throws NotFoundException si la sede no existe
+     * @throws ForbiddenException si un usuario de sede intenta acceder a otra sede
+     */
     @Transactional(readOnly = true)
     public Sede getVisibleEntity(Long id) {
         Sede sede = sedeRepository.findById(id)

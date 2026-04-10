@@ -26,6 +26,12 @@ import pe.incubadora.backend.dto.repuesto.RepuestoResponse;
 import pe.incubadora.backend.entity.Repuesto;
 import pe.incubadora.backend.service.RepuestoService;
 
+/**
+ * Expone el catálogo de repuestos y consultas de inventario.
+ *
+ * <p>Su uso principal es sostener la gestión de stock y el consumo asociado a
+ * las órdenes de trabajo.</p>
+ */
 @RestController
 @RequestMapping("/api/v1/repuestos")
 @SecurityRequirement(name = "bearerAuth")
@@ -34,6 +40,11 @@ public class RepuestoController {
 
     private final RepuestoService repuestoService;
 
+    /**
+     * Lista repuestos con filtros administrativos y paginación.
+     *
+     * @return página de repuestos disponibles en la API
+     */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     public Page<RepuestoResponse> findAll(@RequestParam(required = false) String search,
@@ -43,24 +54,48 @@ public class RepuestoController {
         return repuestoService.findAll(search, activo, stockBajo, pageable);
     }
 
+    /**
+     * Devuelve un repuesto puntual por identificador.
+     *
+     * @param id repuesto solicitado
+     * @return entidad representada en la respuesta actual del endpoint
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     public Repuesto findById(@PathVariable Long id) {
         return repuestoService.getEntity(id);
     }
 
+    /**
+     * Registra un repuesto nuevo en el catálogo de inventario.
+     *
+     * @param request datos necesarios para crear el recurso
+     * @return repuesto creado
+     */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     public ResponseEntity<RepuestoResponse> create(@Valid @RequestBody RepuestoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(repuestoService.create(request));
     }
 
+    /**
+     * Actualiza la ficha administrativa de un repuesto.
+     *
+     * @param id repuesto a modificar
+     * @param request estado deseado del recurso
+     * @return repuesto actualizado
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     public RepuestoResponse update(@PathVariable Long id, @Valid @RequestBody RepuestoRequest request) {
         return repuestoService.update(id, request);
     }
 
+    /**
+     * Elimina un repuesto del catálogo expuesto.
+     *
+     * @param id identificador del repuesto
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -68,6 +103,11 @@ public class RepuestoController {
         repuestoService.delete(id);
     }
 
+    /**
+     * Obtiene los repuestos que la API considera en situación de stock bajo.
+     *
+     * @return página filtrada para seguimiento operativo del inventario
+     */
     @GetMapping("/stock-bajo")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     public Page<RepuestoResponse> findLowStock(@RequestParam(required = false) String search,

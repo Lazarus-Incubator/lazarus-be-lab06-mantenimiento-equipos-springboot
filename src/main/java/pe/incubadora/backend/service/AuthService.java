@@ -15,6 +15,13 @@ import pe.incubadora.backend.repository.UserRepository;
 import pe.incubadora.backend.security.JwtService;
 import pe.incubadora.backend.security.UserPrincipal;
 
+/**
+ * Coordina el flujo de autenticacion de la API.
+ *
+ * <p>Esta clase valida las credenciales con Spring Security, recupera el usuario
+ * persistido y construye la respuesta de login con el token JWT y el resumen del
+ * usuario autenticado.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -25,6 +32,14 @@ public class AuthService {
     private final UserMapper userMapper;
     private final AppJwtProperties appJwtProperties;
 
+    /**
+     * Autentica a un usuario y prepara la respuesta utilizada por el cliente para
+     * iniciar una sesion autenticada.
+     *
+     * @param request credenciales enviadas al endpoint de login
+     * @return token JWT, tiempo de expiracion y datos basicos del usuario autenticado
+     * @throws NotFoundException si el usuario autenticado ya no existe en la base de datos
+     */
     public LoginResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())

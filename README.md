@@ -281,4 +281,4 @@ También evalúa si trabajaste como un ingeniero profesional:
 - manteniendo el sistema coherente
 - dejando evidencia clara de tu trabajo
 
-La meta es que resuelvas un sistema realista, con criterio técnico, no que intentes adivinar trampas escondidas.
+La meta es que resuelvas un sistema realista, con criterio técnico.

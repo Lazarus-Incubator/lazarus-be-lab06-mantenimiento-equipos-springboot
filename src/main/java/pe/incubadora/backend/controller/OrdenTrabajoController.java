@@ -29,6 +29,12 @@ import pe.incubadora.backend.dto.orden.OrdenTrabajoUpdateRequest;
 import pe.incubadora.backend.entity.EstadoOrdenTrabajo;
 import pe.incubadora.backend.service.OrdenTrabajoService;
 
+/**
+ * Expone el flujo HTTP de las órdenes de trabajo técnicas.
+ *
+ * <p>Las operaciones de esta clase cubren consulta, creación y transiciones
+ * operativas utilizadas por operaciones y técnicos.</p>
+ */
 @RestController
 @RequestMapping("/api/v1/ordenes")
 @SecurityRequirement(name = "bearerAuth")
@@ -37,6 +43,11 @@ public class OrdenTrabajoController {
 
     private final OrdenTrabajoService ordenTrabajoService;
 
+    /**
+     * Lista órdenes con filtros de sede, incidencia, estado y técnico.
+     *
+     * @return página de órdenes visibles según el rol autenticado
+     */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES','SEDE','TECNICO')")
     public Page<OrdenTrabajoResponse> findAll(@RequestParam(required = false) Long sedeId,
@@ -47,6 +58,12 @@ public class OrdenTrabajoController {
         return ordenTrabajoService.findAll(sedeId, incidenciaId, estado, tecnicoId, pageable);
     }
 
+    /**
+     * Recupera una orden por identificador.
+     *
+     * @param id identificador interno de la orden
+     * @return detalle de la orden o una respuesta de error según el flujo actual
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES','SEDE','TECNICO')")
     public ResponseEntity<?> findById(@PathVariable Long id) {
@@ -58,18 +75,36 @@ public class OrdenTrabajoController {
         }
     }
 
+    /**
+     * Crea una orden de trabajo a partir de una incidencia.
+     *
+     * @param request datos base con los que inicia la atención técnica
+     * @return orden creada
+     */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     public ResponseEntity<OrdenTrabajoResponse> create(@Valid @RequestBody OrdenTrabajoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ordenTrabajoService.create(request));
     }
 
+    /**
+     * Actualiza la información editable de una orden.
+     *
+     * @param id orden a modificar
+     * @param request contenido actualizado
+     * @return orden con los cambios aplicados
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     public OrdenTrabajoResponse update(@PathVariable Long id, @Valid @RequestBody OrdenTrabajoUpdateRequest request) {
         return ordenTrabajoService.update(id, request);
     }
 
+    /**
+     * Elimina una orden cuando el flujo operativo todavía lo admite.
+     *
+     * @param id identificador de la orden
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -77,18 +112,38 @@ public class OrdenTrabajoController {
         ordenTrabajoService.delete(id);
     }
 
+    /**
+     * Asigna la orden a un técnico responsable.
+     *
+     * @param id orden a asignar
+     * @param request técnico que asumirá la atención
+     * @return orden con la asignación realizada
+     */
     @PostMapping("/{id}/asignar")
     @PreAuthorize("hasAnyRole('ADMIN','OPERACIONES')")
     public OrdenTrabajoResponse assign(@PathVariable Long id, @Valid @RequestBody OrdenTrabajoAssignRequest request) {
         return ordenTrabajoService.assign(id, request);
     }
 
+    /**
+     * Marca el inicio formal del trabajo técnico.
+     *
+     * @param id orden que entra en ejecución
+     * @return orden en proceso
+     */
     @PostMapping("/{id}/iniciar")
     @PreAuthorize("hasAnyRole('ADMIN','TECNICO')")
     public OrdenTrabajoResponse start(@PathVariable Long id) {
         return ordenTrabajoService.start(id);
     }
 
+    /**
+     * Cierra técnicamente la orden y registra los repuestos consumidos.
+     *
+     * @param id orden a finalizar
+     * @param request observaciones finales y consumo asociado
+     * @return orden finalizada
+     */
     @PostMapping("/{id}/finalizar")
     @PreAuthorize("hasAnyRole('ADMIN','TECNICO')")
     public OrdenTrabajoResponse finalizeOrder(@PathVariable Long id,

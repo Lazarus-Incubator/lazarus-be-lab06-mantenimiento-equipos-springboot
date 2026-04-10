@@ -15,6 +15,12 @@ import pe.incubadora.backend.exception.NotFoundException;
 import pe.incubadora.backend.mapper.RepuestoMapper;
 import pe.incubadora.backend.repository.RepuestoRepository;
 
+/**
+ * Administra el catalogo de repuestos y sus consultas operativas.
+ *
+ * <p>Su responsabilidad principal es mantener la informacion base de inventario y
+ * proyectarla como DTOs listos para la API.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class RepuestoService {
@@ -22,6 +28,15 @@ public class RepuestoService {
     private final RepuestoRepository repuestoRepository;
     private final RepuestoMapper repuestoMapper;
 
+    /**
+     * Lista repuestos aplicando filtros por texto, estado logico y condicion de stock.
+     *
+     * @param search texto libre sobre codigo, nombre y descripcion
+     * @param activo filtro por vigencia logica del repuesto
+     * @param stockBajo cuando es verdadero restringe la consulta a repuestos cercanos al minimo
+     * @param pageable configuracion de paginacion
+     * @return pagina de repuestos mapeados a DTO
+     */
     @Transactional(readOnly = true)
     public Page<RepuestoResponse> findAll(String search, Boolean activo, Boolean stockBajo, Pageable pageable) {
         Specification<Repuesto> spec = (root, query, cb) -> cb.conjunction();
@@ -49,6 +64,12 @@ public class RepuestoService {
         return repuestoMapper.toResponse(getEntity(id));
     }
 
+    /**
+     * Registra un repuesto nuevo en el inventario.
+     *
+     * @param request datos del repuesto enviados por la API
+     * @return repuesto creado
+     */
     @Transactional
     public RepuestoResponse create(RepuestoRequest request) {
         if (repuestoRepository.existsByCodigoIgnoreCase(request.codigo().trim())) {
@@ -59,6 +80,13 @@ public class RepuestoService {
         return repuestoMapper.toResponse(repuestoRepository.save(repuesto));
     }
 
+    /**
+     * Actualiza un repuesto existente manteniendo la unicidad del codigo.
+     *
+     * @param id identificador del repuesto
+     * @param request nuevos datos del repuesto
+     * @return repuesto actualizado
+     */
     @Transactional
     public RepuestoResponse update(Long id, RepuestoRequest request) {
         Repuesto repuesto = getEntity(id);
@@ -75,6 +103,13 @@ public class RepuestoService {
         repuestoRepository.delete(getEntity(id));
     }
 
+    /**
+     * Obtiene la entidad JPA del repuesto para procesos internos que necesitan trabajar
+     * con stock, version y demas atributos persistidos.
+     *
+     * @param id identificador del repuesto
+     * @return entidad encontrada en base de datos
+     */
     @Transactional(readOnly = true)
     public Repuesto getEntity(Long id) {
         return repuestoRepository.findById(id)
