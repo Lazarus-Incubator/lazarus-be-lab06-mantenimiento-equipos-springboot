@@ -14,9 +14,7 @@ La empresa ya cuenta con un backend desarrollado para gestionar:
 
 Este sistema ya se encuentra levantado y es usado de forma interna por distintas áreas. Sin embargo, el módulo presenta fallas funcionales, reglas de negocio mal aplicadas, comportamientos inconsistentes y algunos problemas de seguridad que ya fueron reportados por usuarios internos y por QA.
 
-Tu trabajo en este laboratorio **no es rehacer el proyecto desde cero**.
-
-Tu trabajo consiste en actuar como un ingeniero que entra a un sistema real ya existente y debe:
+Tu trabajo consiste en:
 
 - entender el flujo del negocio
 - revisar el código actual
@@ -26,7 +24,7 @@ Tu trabajo consiste en actuar como un ingeniero que entra a un sistema real ya e
 - estabilizar el comportamiento general de la API
 - dejar el sistema en mejor estado técnico
 
-Este laboratorio busca que trabajes sobre una base existente, con criterio de mantenimiento evolutivo y correctivo, como ocurriría en una empresa real.
+Este laboratorio busca que trabajes sobre una base existente, con criterio de mantenimiento evolutivo y correctivo.
 
 ---
 
@@ -273,12 +271,10 @@ Tu entrega debe cumplir como mínimo con lo siguiente:
 
 Este laboratorio no evalúa únicamente si encontraste errores.
 
-También evalúa si trabajaste como un ingeniero profesional:
+También evalúa si trabajaste:
 
 - entendiendo antes de tocar
 - reproduciendo antes de corregir
 - justificando cada cambio con una regla o un impacto real
 - manteniendo el sistema coherente
 - dejando evidencia clara de tu trabajo
-
-La meta es que resuelvas un sistema realista, con criterio técnico.
